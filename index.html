@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Podcast Reader</title>
+  <link rel="icon" type="image/png" href="/favicons/favicon-96x96.png" sizes="96x96" />
+  <link rel="icon" type="image/svg+xml" href="/favicons/favicon.svg" />
+  <link rel="shortcut icon" href="/favicons/favicon.ico" />
+
+  <style>
+    /* 1. Base reset & CSS variables ─────────────────── */
+    :root {
+      --bg: #ffffff;
+      --bg-subtle: #fafafa;
+      --bg-hover: #f4f4f4;
+      --fg: #292929;
+      --fg-subtle: #757575;
+      --fg-muted: #a8a8a8;
+      --border: #e6e6e6;
+      --border-light: #f0f0f0;
+      --accent: #1a8917;     /* Medium's green accent */
+      --accent-hover: #0f730c;
+      --max-width: 728px;    /* Medium's content width */
+      --font-serif: 'Georgia', 'Times New Roman', serif;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--fg);
+      font-size: 16px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+    }
+
+    /* 2. Layout structure ──────────────────────── */
+    .app-container {
+      display: flex;
+      flex-direction: column;
+      min-height: 100%;
+    }
+
+    /* 3. Header ─────────────────────────── */
+    .header {
+      /* Clean header with subtle border only */
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      color: var(--fg);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .header h1 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .header-info {
+      font-size: 0.85rem;
+      color: var(--fg-subtle);
+    }
+
+    /* 4. Main content area ───────────────────────── */
+    .main-content {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* Sidebar for table of contents */
+    .sidebar {
+      width: 260px;
+      flex-shrink: 0;
+      border-right: 1px solid var(--border);
+      background: var(--bg);
+      overflow-y: auto;
+    }
+
+    /* Table of contents header */
+    .sidebar-header {
+      padding: 16px 20px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .sidebar-title {
+      font-weight: 500;
+      font-size: 0.875rem;
+      margin-bottom: 4px;
+      letter-spacing: 0.01em;
+      text-transform: uppercase;
+      color: var(--fg-subtle);
+    }
+
+    .sidebar-stats {
+      font-size: 0.8125rem;
+      color: var(--fg-muted);
+    }
+
+    .show-group {
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .show-header {
+      padding: 16px 20px;
+      background: var(--bg);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      transition: background-color 0.2s ease;
+    }
+
+    .show-header:hover {
+      background: var(--bg-hover);
+    }
+
+    .show-title {
+      font-weight: 500;
+      font-size: 0.9375rem;
+      flex: 1;
+      color: var(--fg);
+      letter-spacing: -0.003em;
+    }
+
+    .show-author {
+      font-size: 0.8125rem;
+      color: var(--fg-subtle);
+      margin-top: 2px;
+      font-weight: 400;
+    }
+
+    .show-toggle {
+      margin-left: 10px;
+      color: var(--fg-subtle);
+      font-size: 0.8rem;
+    }
+
+    .episode-count {
+      background: var(--bg-subtle);
+      color: var(--fg-subtle);
+      font-size: 0.75rem;
+      padding: 3px 8px;
+      border-radius: 12px;
+      margin-left: 10px;
+      font-weight: 500;
+    }
+
+    /* Episodes */
+    .episodes-list {
+      display: none;
+      background: var(--bg);
+    }
+
+    .episodes-list.expanded {
+      display: block;
+    }
+
+    /* Episode items (table of contents entries) */
+    .episode-item {
+      padding: 12px 20px 12px 36px;
+      border-bottom: 1px solid var(--border-light);
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+
+    .episode-item:hover {
+      background: var(--bg-hover);
+    }
+
+    .episode-item.selected {
+      background: var(--bg-subtle);
+      border-left: 3px solid var(--accent);
+      padding-left: 33px;
+    }
+
+    .episode-title {
+      font-weight: 400;
+      font-size: 0.875rem;
+      line-height: 1.4;
+      margin-bottom: 4px;
+      color: var(--fg);
+      letter-spacing: -0.003em;
+    }
+
+    .episode-meta {
+      font-size: 0.75rem;
+      color: var(--fg-muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .episode-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .export-button {
+      padding: 6px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-left: 8px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .export-button:hover {
+      background: var(--bg-hover);
+    }
+    
+    .export-icon {
+      width: 16px;
+      height: 16px;
+      stroke: var(--fg-subtle);
+      fill: none;
+      stroke-width: 2;
+      transition: stroke 0.2s ease;
+    }
+    
+    .export-button:hover .export-icon {
+      stroke: var(--accent);
+    }
+    
+    .delete-button {
+      padding: 4px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-left: 8px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .delete-button:hover {
+      background: rgba(220, 53, 69, 0.1);
+    }
+    
+    .delete-icon {
+      width: 14px;
+      height: 14px;
+      stroke: var(--fg-muted);
+      fill: none;
+      stroke-width: 2;
+      transition: stroke 0.2s ease;
+    }
+    
+    .delete-button:hover .delete-icon {
+      stroke: #dc3545;
+    }
+
+    /* 5. Reading area (main content) ──────────────────── */
+    .content-area {
+      flex: 1;
+      display: flex;
+      justify-content: flex-start;   /* Left-aligned content */
+      overflow-y: auto;
+    }
+
+    .reading-wrapper {          /* Content wrapper for optimal reading */
+      max-width: var(--max-width);
+      margin: 0 auto;            /* Center the content */
+      padding: 48px 20px 96px;   /* Generous padding for comfortable reading */
+      text-align: left;          /* Force left text alignment */
+    }
+
+    .welcome-screen {
+      width: 100%;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      height: 100%;
+      color: var(--fg-subtle);
+      text-align: center;
+      padding: 35vh 40px 40px;
+    }
+
+    .welcome-content h2 {
+      color: var(--fg);
+      margin-bottom: 0.5rem;
+      font-size: 2rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+    
+    .welcome-content p {
+      font-size: 1.125rem;
+      color: var(--fg-subtle);
+      font-family: var(--font-serif);
+    }
+
+    /* Episode content */
+    .episode-content {
+      display: none;
+      width: 100%;
+      align-self: flex-start;   /* Ensure it aligns to the left */
+    }
+
+    .episode-content.active {
+      display: flex;            /* Use flex instead of block */
+      flex-direction: column;
+    }
+
+    /* Typography - Medium style */
+    .episode-header-title {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--fg);
+      margin-bottom: 0.5em;
+      line-height: 1.25;
+      letter-spacing: -0.02em;
+      font-family: var(--font-sans);
+    }
+
+    .episode-header-meta {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 1.5em;
+      font-size: 0.875rem;
+      color: var(--fg-subtle);
+      font-family: var(--font-sans);
+    }
+
+    .episode-header-meta a {
+      color: var(--accent);
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+
+    .episode-header-meta a:hover {
+      color: var(--accent-hover);
+    }
+
+    .episode-header-description {
+      font-size: 1.25rem;
+      color: var(--fg-subtle);
+      line-height: 1.6;
+      margin-bottom: 2em;
+      font-family: var(--font-serif);
+      font-weight: 400;
+      letter-spacing: -0.003em;
+    }
+
+    /* Paragraphs */
+    p {
+      margin: 0 0 1.5em;
+      font-size: 1.125rem;
+      line-height: 1.7;
+      font-family: var(--font-serif);
+      letter-spacing: -0.003em;
+    }
+
+    /* 6. Transcript styling ─────────────── */
+    .transcript-container {
+      /* Padding managed by reading-wrapper */
+    }
+
+    .transcript-chunk {
+      display: grid;
+      grid-template-columns: 80px 1fr;
+      gap: 20px;
+      margin-bottom: 2rem;
+      padding: 0;
+      border: none;
+      background: transparent;
+      align-items: baseline;
+    }
+
+    .transcript-speaker {
+      font-weight: 500;
+      color: var(--fg-subtle);
+      font-size: 0.8125rem;
+      font-family: var(--font-sans);
+      letter-spacing: -0.003em;
+      text-align: left;
+      padding-top: 0.125rem; /* Fine-tune alignment with text */
+    }
+
+    .transcript-text {
+      margin: 0;
+      color: var(--fg);
+      line-height: 1.7;
+      font-size: 1.125rem;
+      font-family: var(--font-serif);
+      letter-spacing: -0.003em;
+    }
+    
+    /* Responsive: Stack on mobile */
+    @media (max-width: 600px) {
+      .transcript-chunk {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+      }
+      
+      .transcript-speaker {
+        text-align: left;
+        margin-bottom: 0.25rem;
+      }
+    }
+
+
+    /* Loading state */
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: var(--fg-subtle);
+    }
+
+    /* 7. Responsive design ──────────────────────── */
+    @media (max-width: 768px) {
+      .sidebar {
+        display: none;          /* Hide sidebar on mobile for focus */
+      }
+      .header h1 {
+        font-size: 0.9rem;
+      }
+      .reading-wrapper {
+        padding: 24px 18px 48px;
+      }
+      .welcome-screen {
+        padding: 30vh 24px 24px; /* Center position for mobile */
+      }
+    }
+
+    /* 8. Dark mode (prefers-color-scheme) ───── */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1a1a1a;
+        --bg-subtle: #242424;
+        --bg-hover: #2a2a2a;
+        --fg: #e6e6e6;
+        --fg-subtle: #a8a8a8;
+        --fg-muted: #757575;
+        --border: #333333;
+        --border-light: #2a2a2a;
+        --accent: #3db83a;
+        --accent-hover: #47d644;
+      }
+    }
+
+    /* Medium-style selection color */
+    ::selection {
+      background: rgba(26, 137, 23, 0.15);
+      color: inherit;
+    }
+    
+    /* Custom confirmation dialog */
+    .dialog-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+    }
+    
+    .dialog-box {
+      background: var(--bg);
+      border-radius: 8px;
+      padding: 24px;
+      max-width: 400px;
+      width: 90%;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      border: 1px solid var(--border);
+    }
+    
+    .dialog-title {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: var(--fg);
+      margin-bottom: 8px;
+    }
+    
+    .dialog-message {
+      font-size: 0.875rem;
+      color: var(--fg-subtle);
+      line-height: 1.5;
+      margin-bottom: 20px;
+    }
+    
+    .dialog-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+    
+    .dialog-button {
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: 1px solid var(--border);
+    }
+    
+    .dialog-button-cancel {
+      background: var(--bg);
+      color: var(--fg-subtle);
+    }
+    
+    .dialog-button-cancel:hover {
+      background: var(--bg-hover);
+    }
+    
+    .dialog-button-confirm {
+      background: #dc3545;
+      color: white;
+      border-color: #dc3545;
+    }
+    
+    .dialog-button-confirm:hover {
+      background: #c82333;
+      border-color: #c82333;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <header class="header">
+      <h1><img src="/favicons/favicon.svg" alt="Podcast Reader" style="width: 24px; height: 24px; margin-right: 8px; vertical-align: middle;"> Podcast Reader</h1>
+      <div class="header-info" id="header-info">Loading podcast data...</div>
+    </header>
+    
+    <div class="main-content">
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <div class="sidebar-title">Podcast Shows</div>
+          <div class="sidebar-stats" id="sidebar-stats">Loading...</div>
+        </div>
+        <div id="shows-list" class="shows-list">
+          <div class="loading">Loading podcast shows...</div>
+        </div>
+      </aside>
+      
+      <main class="content-area">
+        <div id="welcome-screen" class="welcome-screen">
+          <div class="welcome-content">
+            <h2>Welcome to <img src="/favicons/favicon.svg" alt="Podcast Reader" style="width: 32px; height: 32px; margin: 0 4px; vertical-align: middle;"> Podcast Reader</h2>
+            <p>Select an episode from the sidebar to view its transcript</p>
+          </div>
+        </div>
+        
+        <div id="episode-content" class="episode-content">
+          <div class="reading-wrapper">
+            <div class="episode-header-title" id="episode-title"></div>
+            <div class="episode-header-meta" id="episode-meta"></div>
+            <div class="episode-header-description" id="episode-description"></div>
+            <div class="transcript-container" id="transcript-container"></div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+  
+  <script type="module">
+    let showsData = [];
+    let websocket = null;
+    let selectedEpisode = null;
+    
+    // DOM elements
+    const headerInfo = document.getElementById('header-info');
+    const sidebarStats = document.getElementById('sidebar-stats');
+    const showsList = document.getElementById('shows-list');
+    const welcomeScreen = document.getElementById('welcome-screen');
+    const episodeContent = document.getElementById('episode-content');
+    const episodeTitle = document.getElementById('episode-title');
+    const episodeMeta = document.getElementById('episode-meta');
+    const episodeDescription = document.getElementById('episode-description');
+    const transcriptContainer = document.getElementById('transcript-container');
+    
+    // Initialize WebSocket connection
+    function connectWebSocket() {
+      try {
+        websocket = new WebSocket('ws://localhost:8001');
+        
+        websocket.onopen = function(event) {
+          console.log('WebSocket connected');
+        };
+        
+        websocket.onmessage = function(event) {
+          const data = JSON.parse(event.data);
+          console.log('WebSocket message received:', data);
+          
+          if (data.type === 'podcast_updated') {
+            // Show update notification
+            showUpdateNotification(data.message);
+            // Reload podcast data
+            setTimeout(() => {
+              loadPodcastShows();
+            }, 1000);
+          }
+        };
+        
+        websocket.onclose = function(event) {
+          console.log('WebSocket disconnected, attempting to reconnect...');
+          setTimeout(connectWebSocket, 3000); // Reconnect after 3 seconds
+        };
+        
+        websocket.onerror = function(error) {
+          console.error('WebSocket error:', error);
+        };
+      } catch (error) {
+        console.error('Failed to connect WebSocket:', error);
+        setTimeout(connectWebSocket, 3000);
+      }
+    }
+    
+    // Show update notification
+    function showUpdateNotification(message) {
+      const notification = document.createElement('div');
+      notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #4CAF50;
+        color: white;
+        padding: 15px;
+        border-radius: 5px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        z-index: 1000;
+        font-size: 14px;
+        max-width: 300px;
+      `;
+      notification.textContent = message;
+      document.body.appendChild(notification);
+      
+      // Remove notification after 3 seconds
+      setTimeout(() => {
+        if (notification.parentNode) {
+          notification.parentNode.removeChild(notification);
+        }
+      }, 3000);
+    }
+    
+    // Load podcast shows data
+    async function loadPodcastShows() {
+      try {
+        const response = await fetch('/api/podcasts-cached');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        showsData = data.shows;
+        
+        const cachedTime = new Date(data.cached_at * 1000).toLocaleString('en-US');
+        headerInfo.textContent = `${data.total_shows} shows, ${data.total_episodes} episodes`;
+        sidebarStats.textContent = `${data.cache_entries} TTML files cached • Updated: ${cachedTime}`;
+        
+        displayShows();
+        
+      } catch (e) {
+        console.error(e);
+        headerInfo.textContent = 'Error loading data';
+        sidebarStats.innerHTML = `<span style="color: red;">Error: ${e.message}</span>`;
+        showsList.innerHTML = `
+          <div class="loading">
+            <p style="color: red;">Error loading podcast data</p>
+            <p>Please ensure the server is running: <code>python3 server-cached.py</code></p>
+          </div>
+        `;
+      }
+    }
+    
+    // Display podcast shows in sidebar
+    function displayShows() {
+      showsList.innerHTML = '';
+      
+      if (showsData.length === 0) {
+        showsList.innerHTML = `
+          <div class="loading">
+            <p>No podcast shows found</p>
+            <p>Please open Podcasts app on macOS and view transcripts to populate data.</p>
+          </div>
+        `;
+        return;
+      }
+      
+      showsData.forEach(show => {
+        const showGroup = document.createElement('div');
+        showGroup.className = 'show-group';
+        
+        const showHeader = document.createElement('div');
+        showHeader.className = 'show-header';
+        showHeader.innerHTML = `
+          <div style="flex: 1;">
+            <div class="show-title">${escapeHtml(show.title)}</div>
+            <div class="show-author">${escapeHtml(show.author)}</div>
+          </div>
+          <div class="episode-count">${show.episodes.length}</div>
+          <div class="show-toggle">▼</div>
+        `;
+        
+        // Add export button to show header
+        const exportBtn = document.createElement('button');
+        exportBtn.className = 'export-button';
+        exportBtn.title = 'Export all episodes to Markdown';
+        exportBtn.innerHTML = `
+          <svg class="export-icon" viewBox="0 0 24 24">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/>
+            <polyline points="14,2 14,8 20,8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <polyline points="10,9 9,9 8,9"/>
+          </svg>
+        `;
+        exportBtn.addEventListener('click', (event) => {
+          event.stopPropagation();
+          exportPodcastToMarkdown(show);
+        });
+        showHeader.appendChild(exportBtn);
+        
+        const episodesList = document.createElement('div');
+        episodesList.className = 'episodes-list';
+        
+        show.episodes.forEach(episode => {
+          const episodeItem = document.createElement('div');
+          episodeItem.className = 'episode-item';
+          episodeItem.dataset.episodeId = episode.id;
+          episodeItem.innerHTML = `
+            <div class="episode-title">${escapeHtml(episode.title)}</div>
+            <div class="episode-meta">
+              <div>
+                <span>${formatDate(episode.time)}</span>
+                <span>${formatTime(episode.duration)}</span>
+              </div>
+              <div class="episode-actions">
+              </div>
+            </div>
+          `;
+          
+          // Add delete button to actions area
+          const actionsDiv = episodeItem.querySelector('.episode-actions');
+          const deleteBtn = document.createElement('button');
+          deleteBtn.className = 'delete-button';
+          deleteBtn.title = 'Delete episode';
+          deleteBtn.innerHTML = `
+            <svg class="delete-icon" viewBox="0 0 24 24">
+              <polyline points="3,6 5,6 21,6"></polyline>
+              <path d="M19,6V20a2,2,0,0,1-2,2H7a2,2,0,0,1-2-2V6m3,0V4a2,2,0,0,1,2-2h4a2,2,0,0,1,2,2V6"></path>
+              <line x1="10" y1="11" x2="10" y2="17"></line>
+              <line x1="14" y1="11" x2="14" y2="17"></line>
+            </svg>
+          `;
+          deleteBtn.addEventListener('click', (event) => {
+            event.stopPropagation();
+            deleteEpisode(show, episode);
+          });
+          actionsDiv.appendChild(deleteBtn);
+          
+          episodeItem.addEventListener('click', () => selectEpisode(show, episode));
+          episodesList.appendChild(episodeItem);
+        });
+        
+        showHeader.addEventListener('click', () => toggleShow(showHeader, episodesList));
+        
+        showGroup.appendChild(showHeader);
+        showGroup.appendChild(episodesList);
+        showsList.appendChild(showGroup);
+      });
+    }
+    
+    // Toggle show expansion
+    function toggleShow(showHeader, episodesList) {
+      const isExpanded = showHeader.classList.contains('expanded');
+      const toggle = showHeader.querySelector('.show-toggle');
+      
+      if (isExpanded) {
+        showHeader.classList.remove('expanded');
+        episodesList.classList.remove('expanded');
+        toggle.textContent = '▼';
+      } else {
+        showHeader.classList.add('expanded');
+        episodesList.classList.add('expanded');
+        toggle.textContent = '▲';
+      }
+    }
+    
+    // Select and display episode
+    function selectEpisode(show, episode) {
+      // Update selected state
+      document.querySelectorAll('.episode-item').forEach(item => {
+        item.classList.remove('selected');
+      });
+      document.querySelector(`[data-episode-id="${episode.id}"]`).classList.add('selected');
+      
+      selectedEpisode = episode;
+      
+      // Hide welcome screen and show episode content
+      welcomeScreen.style.display = 'none';
+      episodeContent.classList.add('active');
+      
+      // Update episode header
+      episodeTitle.textContent = episode.title;
+      episodeMeta.innerHTML = `
+        <span><strong>Show:</strong> ${escapeHtml(show.title)} by ${escapeHtml(show.author)}</span>
+        <span><strong>Date:</strong> ${formatDate(episode.time)}</span>
+        <span><strong>Duration:</strong> ${formatTime(episode.duration)}</span>
+        ${show.url ? `<a href="${show.url}" target="_blank" style="color: #7826b2;">🔗 Show Link</a>` : ''}
+      `;
+      episodeDescription.textContent = episode.description;
+      
+      // Display transcript
+      displayTranscript(episode.transcripts);
+    }
+    
+    // Display transcript
+    function displayTranscript(transcripts) {
+      transcriptContainer.innerHTML = '';
+      
+      if (!transcripts || transcripts.length === 0) {
+        transcriptContainer.innerHTML = `
+          <div class="transcript-chunk">
+            <div class="transcript-text" style="text-align: center; color: #666;">
+              No transcript available for this episode
+            </div>
+          </div>
+        `;
+        return;
+      }
+      
+      // Group consecutive chunks by the same speaker
+      const groupedTranscripts = [];
+      let currentGroup = null;
+      
+      transcripts.forEach(chunk => {
+        if (currentGroup && currentGroup.speaker === chunk.speaker) {
+          // Add to existing group
+          currentGroup.sentences.push(chunk.sentences);
+        } else {
+          // Start new group
+          currentGroup = {
+            speaker: chunk.speaker,
+            sentences: [chunk.sentences]
+          };
+          groupedTranscripts.push(currentGroup);
+        }
+      });
+      
+      // Display grouped transcripts
+      groupedTranscripts.forEach(group => {
+        const chunkDiv = document.createElement('div');
+        chunkDiv.className = 'transcript-chunk';
+        
+        const speakerDiv = document.createElement('div');
+        speakerDiv.className = 'transcript-speaker';
+        speakerDiv.textContent = group.speaker;
+        
+        const textDiv = document.createElement('div');
+        textDiv.className = 'transcript-text';
+        
+        // Join all sentences with a space
+        textDiv.textContent = group.sentences.join(' ');
+        
+        chunkDiv.appendChild(speakerDiv);
+        chunkDiv.appendChild(textDiv);
+        transcriptContainer.appendChild(chunkDiv);
+      });
+    }
+    
+    // Export entire podcast show to Markdown
+    function exportPodcastToMarkdown(show) {
+      const markdown = generatePodcastMarkdown(show);
+      
+      // Create and download file
+      const blob = new Blob([markdown], { type: 'text/markdown' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${sanitizeFilename(show.title)}_all_episodes.md`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+    
+    // Generate Markdown content for entire podcast
+    function generatePodcastMarkdown(show) {
+      let markdown = '';
+      
+      // Show title and metadata
+      markdown += `# ${show.title}\n\n`;
+      markdown += `**Author:** ${show.author}\n`;
+      if (show.url) {
+        markdown += `**Show URL:** ${show.url}\n`;
+      }
+      if (show.description) {
+        markdown += `**Description:** ${show.description}\n`;
+      }
+      markdown += `**Total Episodes:** ${show.episodes.length}\n\n`;
+      
+      markdown += `---\n\n`;
+      
+      // Episodes (sorted by most recent first - use publication time if available, otherwise lastModified)
+      const sortedEpisodes = [...show.episodes].sort((a, b) => {
+        const timeA = a.time !== -1 ? a.time : a.lastModified;
+        const timeB = b.time !== -1 ? b.time : b.lastModified;
+        return timeB - timeA;
+      });
+      
+      sortedEpisodes.forEach((episode, index) => {
+        // Episode header
+        markdown += `## Episode ${index + 1}: ${episode.title}\n\n`;
+        
+        // Episode metadata
+        markdown += `**Date:** ${formatDate(episode.time)}\n`;
+        markdown += `**Duration:** ${formatTime(episode.duration)}\n\n`;
+        
+        // Episode description
+        if (episode.description) {
+          markdown += `### Description\n\n${episode.description}\n\n`;
+        }
+        
+        // Transcript
+        markdown += `### Transcript\n\n`;
+        
+        if (episode.transcripts && episode.transcripts.length > 0) {
+          // Group consecutive chunks by the same speaker
+          const groupedTranscripts = [];
+          let currentGroup = null;
+          
+          episode.transcripts.forEach(chunk => {
+            if (currentGroup && currentGroup.speaker === chunk.speaker) {
+              // Add to existing group
+              currentGroup.sentences.push(chunk.sentences);
+            } else {
+              // Start new group
+              currentGroup = {
+                speaker: chunk.speaker,
+                sentences: [chunk.sentences]
+              };
+              groupedTranscripts.push(currentGroup);
+            }
+          });
+          
+          // Generate markdown for grouped transcripts
+          groupedTranscripts.forEach(group => {
+            markdown += `**${group.speaker}:** ${group.sentences.join(' ')}\n\n`;
+          });
+        } else {
+          markdown += 'No transcript available.\n\n';
+        }
+        
+        // Separator between episodes
+        if (index < sortedEpisodes.length - 1) {
+          markdown += `---\n\n`;
+        }
+      });
+      
+      // Footer
+      markdown += `\n---\n\nExported from Podcast Reader on ${new Date().toLocaleDateString()}\n`;
+      markdown += `Total episodes exported: ${show.episodes.length}\n`;
+      
+      return markdown;
+    }
+    
+    // Show custom confirmation dialog
+    function showConfirmDialog(title, message) {
+      return new Promise((resolve) => {
+        const overlay = document.createElement('div');
+        overlay.className = 'dialog-overlay';
+        overlay.innerHTML = `
+          <div class="dialog-box">
+            <div class="dialog-title">${escapeHtml(title)}</div>
+            <div class="dialog-message">${escapeHtml(message)}</div>
+            <div class="dialog-actions">
+              <button class="dialog-button dialog-button-cancel">Cancel</button>
+              <button class="dialog-button dialog-button-confirm">Delete</button>
+            </div>
+          </div>
+        `;
+        
+        document.body.appendChild(overlay);
+        
+        const cancelBtn = overlay.querySelector('.dialog-button-cancel');
+        const confirmBtn = overlay.querySelector('.dialog-button-confirm');
+        
+        const cleanup = () => {
+          document.body.removeChild(overlay);
+        };
+        
+        cancelBtn.addEventListener('click', () => {
+          cleanup();
+          resolve(false);
+        });
+        
+        confirmBtn.addEventListener('click', () => {
+          cleanup();
+          resolve(true);
+        });
+        
+        // Close on overlay click
+        overlay.addEventListener('click', (e) => {
+          if (e.target === overlay) {
+            cleanup();
+            resolve(false);
+          }
+        });
+        
+        // Close on Escape key
+        const handleEscape = (e) => {
+          if (e.key === 'Escape') {
+            cleanup();
+            resolve(false);
+            document.removeEventListener('keydown', handleEscape);
+          }
+        };
+        document.addEventListener('keydown', handleEscape);
+      });
+    }
+    
+    // Delete episode function
+    async function deleteEpisode(show, episode) {
+      const confirmed = await showConfirmDialog(
+        'Delete Episode',
+        `Are you sure you want to delete "${episode.title}"? This action cannot be undone.`
+      );
+      
+      if (!confirmed) {
+        return;
+      }
+      
+      try {
+        const response = await fetch('/api/delete-episode', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            episode_id: episode.id
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          // Show success notification
+          showUpdateNotification(`Episode "${episode.title}" deleted successfully`);
+          
+          // If this episode is currently selected, clear the view
+          if (selectedEpisode && selectedEpisode.id === episode.id) {
+            selectedEpisode = null;
+            episodeContent.classList.remove('active');
+            welcomeScreen.style.display = 'flex';
+          }
+          
+          // Reload podcast data to update the sidebar
+          setTimeout(() => {
+            loadPodcastShows();
+          }, 500);
+        } else {
+          throw new Error(result.message || 'Failed to delete episode');
+        }
+        
+      } catch (error) {
+        console.error('Error deleting episode:', error);
+        alert(`Error deleting episode: ${error.message}`);
+      }
+    }
+    
+    // Sanitize filename for download
+    function sanitizeFilename(filename) {
+      return filename.replace(/[<>:"/\\|?*]/g, '_').substring(0, 100);
+    }
+    
+    
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    
+    function formatTime(totalSeconds) {
+      if (totalSeconds == -1) {
+        return 'Unknown';
+      }
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      if (hours > 0) {
+        if (minutes != 0) {
+          return `${hours}h ${minutes}m`;
+        } else {
+          return `${hours}h`;
+        }
+      } else {
+        return `${minutes}m`;
+      }
+    }
+
+    function formatDate(unixTime) {
+      if (unixTime == -1) {
+        return 'Unknown date';
+      }
+      let date = new Date(unixTime * 1000);
+      return date.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric' 
+      });
+    }
+
+    // Initialize the application
+    loadPodcastShows();
+    connectWebSocket();
+  </script>
+</body>
+</html>
