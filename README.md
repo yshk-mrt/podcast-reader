@@ -17,6 +17,9 @@ A beautiful web-based transcript reader that transforms your Apple Podcasts expe
 - ✅ **Clean reading interface** optimized for text consumption
 - ✅ **Google Translate compatible** - translate any episode to your language on your browser
 
+![Translation & Download Demo](/images/translation-download.gif?raw=true)
+
+
 ## 🚀 **Quick Start**
 
 ### 1. Setup (One Time)
