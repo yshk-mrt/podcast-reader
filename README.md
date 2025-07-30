@@ -32,7 +32,6 @@ Open http://localhost:8000 in your browser
 ### 2. How to use
 Use Apple Podcasts app as usual. When you view transcripts there, they're automatically cached and will appear in this tool.
 
-### 3. How to use
 - **Browse by show** in the sidebar
 - **Click any episode** to read full transcript
 - **Export entire shows** to Markdown with one click
