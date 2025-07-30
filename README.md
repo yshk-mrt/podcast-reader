@@ -63,3 +63,7 @@ Use Apple Podcasts app as usual. When you view transcripts there, they're automa
 **🤖 AI-Friendly Exports** • **🌍 Google Translate Ready** • **⚡ Real-time Updates**
 
 *Transform your podcast transcripts from view-only to fully accessible content.*
+
+## 📝 **Inspiration & Acknowledgments**
+
+This project was inspired by [@dado3212's apple-podcast-transcripts](https://github.com/dado3212/apple-podcast-transcripts), which provides a web-based interface for viewing Apple Podcast transcripts.
